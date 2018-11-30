@@ -1,46 +1,80 @@
 package br.edu.ifspsaocarlos.agenda.activity;
 
+import android.app.DatePickerDialog;
 import android.content.Intent;
-import android.support.v7.app.AppCompatActivity;
+import android.os.Build;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.EditText;
 
-import br.edu.ifspsaocarlos.agenda.adapter.ContatoAdapter;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
+
+import br.edu.ifspsaocarlos.agenda.R;
 import br.edu.ifspsaocarlos.agenda.data.ContatoDAO;
 import br.edu.ifspsaocarlos.agenda.model.Contato;
-import br.edu.ifspsaocarlos.agenda.R;
 
 
 public class DetalheActivity extends AppCompatActivity {
     private Contato c;
     private ContatoDAO cDAO;
+    private DatePickerDialog datePickerDialog;
+    private EditText nomeText;
+    private EditText foneText;
+    private EditText fone2Text;
+    private EditText emailText;
+    private EditText aniversarioText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detalhe);
 
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        bindViews();
+        criarDatePickerDialog();
 
         if (getIntent().hasExtra("contato"))
         {
-            this.c = (Contato) getIntent().getSerializableExtra("contato");
-            EditText nameText = (EditText)findViewById(R.id.editTextNome);
-            nameText.setText(c.getNome());
-            EditText foneText = (EditText)findViewById(R.id.editTextFone);
+            c = (Contato) getIntent().getSerializableExtra("contato");
+            nomeText.setText(c.getNome());
             foneText.setText(c.getFone());
-            EditText emailText = (EditText)findViewById(R.id.editTextEmail);
+            fone2Text.setText(c.getFone2());
             emailText.setText(c.getEmail());
+            if (!TextUtils.isEmpty(c.getAniversario())) {
+                try {
+                    final Date dataAniversario = new SimpleDateFormat("dd/MM", Locale.getDefault()).parse(c.getAniversario());
+                    final Calendar calendar = Calendar.getInstance(Locale.getDefault());
+                    calendar.setTime(dataAniversario);
+                    datePickerDialog.updateDate(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
+                    aniversarioText.setText(c.getAniversario());
+                } catch (ParseException ignored) { }
+            }
             int pos =c.getNome().indexOf(" ");
             if (pos==-1)
                 pos=c.getNome().length();
             setTitle(c.getNome().substring(0,pos));
         }
         cDAO = new ContatoDAO(this);
+    }
+
+    private void bindViews() {
+        nomeText = findViewById(R.id.editTextNome);
+        foneText = findViewById(R.id.editTextFone);
+        fone2Text = findViewById(R.id.editTextFone2);
+        emailText = findViewById(R.id.editTextEmail);
+        aniversarioText = findViewById(R.id.editTextAniversario);
+        aniversarioText.setOnClickListener(v -> datePickerDialog.show());
     }
 
     @Override
@@ -69,6 +103,26 @@ public class DetalheActivity extends AppCompatActivity {
         }
     }
 
+    private void criarDatePickerDialog() {
+        final Calendar calendar = Calendar.getInstance(Locale.getDefault());
+        datePickerDialog = new DatePickerDialog(this, android.support.v7.appcompat.R.style.Theme_AppCompat_Light_Dialog,
+                (view, year, month, dayOfMonth) -> aniversarioText.setText(String.format(Locale.getDefault(), "%02d/%02d", dayOfMonth, month)),
+                calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH))
+        {
+            @Override
+            protected void onCreate(Bundle savedInstanceState)
+            {
+                super.onCreate(savedInstanceState);
+                final View yearView = getDatePicker().findViewById(getResources()
+                        .getIdentifier(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? "date_picker_header_year" : "date_picker_year","id","android"));
+                if (yearView != null) {
+                    yearView.setVisibility(View.GONE);
+                }
+                getDatePicker().setMaxDate(new Date().getTime());
+            }
+        };
+    }
+
     private void apagar()
     {
         cDAO.apagaContato(c);
@@ -80,21 +134,17 @@ public class DetalheActivity extends AppCompatActivity {
 
     private void salvar()
     {
-        String name = ((EditText) findViewById(R.id.editTextNome)).getText().toString();
-        String fone = ((EditText) findViewById(R.id.editTextFone)).getText().toString();
-        String email = ((EditText) findViewById(R.id.editTextEmail)).getText().toString();
-
-        if (c==null)
+        if (c==null) {
             c = new Contato();
-
-
-        c.setNome(name);
-        c.setFone(fone);
-        c.setEmail(email);
+        }
+        
+        c.setNome(nomeText.getText().toString());
+        c.setFone(foneText.getText().toString());
+        c.setFone2(fone2Text.getText().toString());
+        c.setEmail(emailText.getText().toString());
+        c.setAniversario(aniversarioText.getText().toString());
 
         cDAO.salvaContato(c);
-        //c.setId(10);
-        //ContatoAdapter.Adiciona(c);
         Intent resultIntent = new Intent();
         setResult(RESULT_OK,resultIntent);
         finish();

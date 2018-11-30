@@ -5,12 +5,13 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
-import br.edu.ifspsaocarlos.agenda.model.Contato;
-import br.edu.ifspsaocarlos.agenda.R;
-
 import java.util.List;
+
+import br.edu.ifspsaocarlos.agenda.R;
+import br.edu.ifspsaocarlos.agenda.model.Contato;
 
 
 public class ContatoAdapter extends RecyclerView.Adapter<ContatoAdapter.ContatoViewHolder> {
@@ -18,10 +19,8 @@ public class ContatoAdapter extends RecyclerView.Adapter<ContatoAdapter.ContatoV
     private static List<Contato> contatos;
     private Context context;
 
-
     private static ItemClickListener clickListener;
-
-
+    private static ItemClickListener favoritoClickListener;
 
     public ContatoAdapter(List<Contato> contatos, Context context) {
         this.contatos = contatos;
@@ -37,7 +36,9 @@ public class ContatoAdapter extends RecyclerView.Adapter<ContatoAdapter.ContatoV
 
     @Override
     public void onBindViewHolder(ContatoViewHolder holder, int position) {
-       holder.nome.setText(contatos.get(position).getNome());
+        final Contato contato = contatos.get(position);
+       holder.nome.setText(contato.getNome());
+       holder.favorito.setImageResource(contato.isFavorito() ? R.drawable.ic_star : R.drawable.ic_star_border);
     }
 
     @Override
@@ -45,26 +46,33 @@ public class ContatoAdapter extends RecyclerView.Adapter<ContatoAdapter.ContatoV
         return contatos.size();
     }
 
-
     public void setClickListener(ItemClickListener itemClickListener) {
         clickListener = itemClickListener;
     }
 
+    public void setFavoritoClickListener(ItemClickListener itemFavoritoClickListener) {
+        favoritoClickListener = itemFavoritoClickListener;
+    }
 
-    public  class ContatoViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
+    public  class ContatoViewHolder extends RecyclerView.ViewHolder {
         final TextView nome;
+        final ImageView favorito;
 
         ContatoViewHolder(View view) {
             super(view);
-            nome = (TextView)view.findViewById(R.id.nome);
-            view.setOnClickListener(this);
-        }
+            nome = view.findViewById(R.id.nome);
+            favorito = view.findViewById(R.id.favorito);
 
-        @Override
-        public void onClick(View view) {
-
-            if (clickListener != null)
-                clickListener.onItemClick(getAdapterPosition());
+            nome.setOnClickListener(v -> {
+                if (clickListener != null) {
+                    clickListener.onItemClick(getAdapterPosition());
+                }
+            });
+            favorito.setOnClickListener(v -> {
+                if (favoritoClickListener != null) {
+                    favoritoClickListener.onItemClick(getAdapterPosition());
+                }
+            });
         }
     }
 

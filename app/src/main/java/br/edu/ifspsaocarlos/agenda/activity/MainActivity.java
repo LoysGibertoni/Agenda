@@ -19,7 +19,9 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.text.TextUtils;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -46,6 +48,7 @@ public class MainActivity extends AppCompatActivity{
     private SearchView searchView;
 
     private FloatingActionButton fab;
+    private boolean favoritos;
 
     @Override
     public void onBackPressed() {
@@ -84,12 +87,12 @@ public class MainActivity extends AppCompatActivity{
 
         cDAO= new ContatoDAO(this);
 
-        empty= (TextView) findViewById(R.id.empty_view);
+        empty= findViewById(R.id.empty_view);
 
-        Toolbar toolbar = (Toolbar)findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        recyclerView = (RecyclerView) findViewById(R.id.my_recycler_view);
+        recyclerView = findViewById(R.id.my_recycler_view);
         RecyclerView.LayoutManager layout = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layout);
 
@@ -98,13 +101,10 @@ public class MainActivity extends AppCompatActivity{
 
         setupRecyclerView();
 
-        fab = (FloatingActionButton)findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent i = new Intent(getApplicationContext(), DetalheActivity.class);
-                startActivityForResult(i, 1);
-            }
+        fab = findViewById(R.id.fab);
+        fab.setOnClickListener(view -> {
+            Intent i = new Intent(getApplicationContext(), DetalheActivity.class);
+            startActivityForResult(i, 1);
         });
 
         updateUI(null);
@@ -117,19 +117,16 @@ public class MainActivity extends AppCompatActivity{
         SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
         searchView = (SearchView) menu.findItem(R.id.pesqContato).getActionView();
 
-        ImageView closeButton = (ImageView)searchView.findViewById(R.id.search_close_btn);
+        ImageView closeButton = searchView.findViewById(R.id.search_close_btn);
 
 
-        closeButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                EditText et = (EditText)findViewById(R.id.search_src_text);
-                if (et.getText().toString().isEmpty())
-                    searchView.onActionViewCollapsed();
+        closeButton.setOnClickListener(v -> {
+            EditText et = findViewById(R.id.search_src_text);
+            if (et.getText().toString().isEmpty())
+                searchView.onActionViewCollapsed();
 
-                searchView.setQuery("", false);
-                updateUI(null);
-            }
+            searchView.setQuery("", false);
+            updateUI(null);
         });
 
 
@@ -142,6 +139,15 @@ public class MainActivity extends AppCompatActivity{
         return true;
     }
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.verFavoritos) {
+            this.favoritos = !this.favoritos;
+            this.updateUI(searchView.getQuery().toString());
+            item.setTitle(this.favoritos ? R.string.ver_todos : R.string.ver_favoritos);
+        }
+        return super.onOptionsItemSelected(item);
+    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -167,7 +173,7 @@ public class MainActivity extends AppCompatActivity{
     }
 
     private void showSnackBar(String msg) {
-        CoordinatorLayout coordinatorlayout= (CoordinatorLayout)findViewById(R.id.coordlayout);
+        CoordinatorLayout coordinatorlayout= findViewById(R.id.coordlayout);
         Snackbar.make(coordinatorlayout, msg,
                 Snackbar.LENGTH_LONG)
                 .show();
@@ -175,19 +181,19 @@ public class MainActivity extends AppCompatActivity{
 
 
 
-    private void updateUI(String nomeContato)
+    private void updateUI(String nomeOuEmailContato)
     {
 
         contatos.clear();
 
-        if (nomeContato==null) {
-            contatos.addAll(cDAO.buscaTodosContatos());
+        if (TextUtils.isEmpty(nomeOuEmailContato)) {
+            contatos.addAll(cDAO.buscaTodosContatos(favoritos));
             empty.setText(getResources().getString(R.string.lista_vazia));
             fab.show();
 
         }
         else {
-            contatos.addAll(cDAO.buscaContato(nomeContato));
+            contatos.addAll(cDAO.buscaContato(nomeOuEmailContato, favoritos));
             empty.setText(getResources().getString(R.string.contato_nao_encontrado));
             fab.hide();
 
@@ -206,15 +212,25 @@ public class MainActivity extends AppCompatActivity{
     private void setupRecyclerView() {
 
 
-        adapter.setClickListener(new ContatoAdapter.ItemClickListener() {
-            @Override
-            public void onItemClick(int position) {
-                final Contato contato = contatos.get(position);
-                Intent i = new Intent(getApplicationContext(), DetalheActivity.class);
-                i.putExtra("contato", contato);
-                startActivityForResult(i, 2);
+        adapter.setClickListener(position -> {
+            final Contato contato = contatos.get(position);
+            Intent i = new Intent(getApplicationContext(), DetalheActivity.class);
+            i.putExtra("contato", contato);
+            startActivityForResult(i, 2);
+        });
+
+        adapter.setFavoritoClickListener(position -> {
+            final Contato contato = contatos.get(position);
+            contato.setFavorito(!contato.isFavorito());
+            cDAO.salvaContato(contato);
+            if (this.favoritos) {
+                this.updateUI(searchView.getQuery().toString());
+            } else {
+                adapter.notifyItemChanged(position);
             }
         });
+
+
 
 
         ItemTouchHelper.SimpleCallback simpleItemTouchCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.RIGHT) {
