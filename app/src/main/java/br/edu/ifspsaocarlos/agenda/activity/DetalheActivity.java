@@ -1,5 +1,6 @@
 package br.edu.ifspsaocarlos.agenda.activity;
 
+import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.os.Build;
@@ -56,6 +57,7 @@ public class DetalheActivity extends AppCompatActivity {
                     final Date dataAniversario = new SimpleDateFormat("dd/MM", Locale.getDefault()).parse(c.getAniversario());
                     final Calendar calendar = Calendar.getInstance(Locale.getDefault());
                     calendar.setTime(dataAniversario);
+                    calendar.set(Calendar.YEAR, 2020);
                     datePickerDialog.updateDate(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
                     aniversarioText.setText(c.getAniversario());
                 } catch (ParseException ignored) { }
@@ -105,20 +107,25 @@ public class DetalheActivity extends AppCompatActivity {
 
     private void criarDatePickerDialog() {
         final Calendar calendar = Calendar.getInstance(Locale.getDefault());
-        datePickerDialog = new DatePickerDialog(this, android.support.v7.appcompat.R.style.Theme_AppCompat_Light_Dialog,
-                (view, year, month, dayOfMonth) -> aniversarioText.setText(String.format(Locale.getDefault(), "%02d/%02d", dayOfMonth, month)),
+        datePickerDialog = new DatePickerDialog(this, AlertDialog.THEME_HOLO_LIGHT,
+                (view, year, month, dayOfMonth) -> aniversarioText.setText(String.format(Locale.getDefault(), "%02d/%02d", dayOfMonth, month + 1)),
                 calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH))
         {
             @Override
             protected void onCreate(Bundle savedInstanceState)
             {
                 super.onCreate(savedInstanceState);
-                final View yearView = getDatePicker().findViewById(getResources()
-                        .getIdentifier(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? "date_picker_header_year" : "date_picker_year","id","android"));
+                final View yearView = getDatePicker().findViewById(getResources().getIdentifier("year","id","android"));
                 if (yearView != null) {
                     yearView.setVisibility(View.GONE);
                 }
-                getDatePicker().setMaxDate(new Date().getTime());
+                calendar.set(Calendar.YEAR, 2020);
+                calendar.set(Calendar.MONTH, 0);
+                calendar.set(Calendar.DAY_OF_MONTH, 1);
+                getDatePicker().setMinDate(calendar.getTimeInMillis());
+                calendar.set(Calendar.MONTH, 11);
+                calendar.set(Calendar.DAY_OF_MONTH, 31);
+                getDatePicker().setMaxDate(calendar.getTimeInMillis());
             }
         };
     }
